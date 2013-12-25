@@ -1,40 +1,34 @@
-# Chef kitchen for BEM (alfa)
+# Chef kitchen for BEM
 
-## Work in VM
+## [BEM](http://ru.bem.info) development on a virtual machine with Vagrant
 
-<pre>
-chef-bem/
-  │
-  ├── cookbooks/
-  ├── project-stub/
-  └── <b>Vagrantfile</b>
-</pre>
+### Requirements
 
-    git clone https://github.com/ilyar/chef-bem.git
-    vagrant up
-    vagrant ssh
-    bem server
-    # open http://localhost:3000/desktop.bundles/index/
-    cd project-stub # bem coding
+* [VirtualBox](https://www.virtualbox.org)
+* [Vagrant 1.3.x](http://vagrantup.com)
 
-## Experiment (not work)
+Make sure to use Vagrant v1.3.x. Do not install Vagrant via rubygems.org as there exists an old gem which will probably cause errors. Instead, go to [Vagrant download page](http://downloads.vagrantup.com/) and install a version ~> `1.3.0`.
 
-<pre>
-project-stub/
-  │
-  ├── .bem/
-  ├── desktop.blocks/
-  ├── desktop.bundles/
-  ├── .gitignore
-  ├── favicon.ico
-  ├── package.json
-  └── <b>Vagrantfile</b>
-</pre>
+### Testing Vagrantfile
 
     git clone https://github.com/ilyar/chef-bem.git
-    cd tests
+    cd chef-bem/tests
     vagrant up
+    # If need customize virtual machine
+    BEM_VM_MEMORY=512 BEM_VM_CORES=2 vagrant up
+
+Open console virtual machine
+
     vagrant ssh
     bem server
     # open http://localhost:3000/desktop.bundles/index/
     # bem coding
+
+### Aliases
+
+*bemblock* `bem create -l desktop.blocks/ -b`
+*bempage* `bem create -l desktop.bundles/ -b`
+
+## Backlog
+
+Feature request and bug report https://github.com/ilyar/chef-bem/issues

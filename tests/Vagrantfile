@@ -1,36 +1,62 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
-VAGRANTFILE_API_VERSION = "2"
+MEMORY = ENV['BEM_VM_MEMORY'] || '256'
+CORES = ENV['BEM_VM_CORES'] || '1'
 
 $script = <<SCRIPT
-  git --version
-  echo node version `node --version`
-  echo npm version `npm --version`
-  sudo npm install --global --quiet bem-cli
-  cd project
-  git clone https://github.com/bem/project-stub.git
-  cd project-stub
-  npm config set bin-links false
-  npm install --quiet
-  echo "cd /home/vagrant/project/project-stub" >> /home/vagrant/.bashrc
+  if [ ! -f /home/vagrant/already-installed-flag ]
+  then
+    # Setup environment
+    npm install --global --quiet bem-cli
+    echo "cd /vagrant/project-stub" >> /home/vagrant/.bashrc
+    echo "alias 'bemblock'='bem create -l desktop.blocks/ -b'" >> /home/vagrant/.bashrc
+    echo "alias 'bempage'='bem create -l desktop.bundles/ -b'" >> /home/vagrant/.bashrc
+
+    # Coning project and testing
+    cd /vagrant
+    git clone https://github.com/bem/project-stub.git
+    cd project-stub
+    npm config set bin-links false
+    npm install --quiet
+
+    # Check version packages
+    echo "Installed packages:"
+    git --version
+    echo node version `node --version`
+    echo npm version `npm --version`
+
+    # Set flag installed
+    date > /home/vagrant/already-installed-flag
+    echo "Done!"
+  else
+    echo "already installed flag set : /home/vagrant/already-installed-flag"
+  fi
 SCRIPT
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+Vagrant.configure("2") do |config|
   config.vm.box = "precise32"
   config.vm.box_url = "http://files.vagrantup.com/precise32.box"
-  config.vm.network :forwarded_port, guest: 8080, host: 3000
-  config.vm.synced_folder ".", "/home/vagrant/project", :create => true
+  config.vm.network :forwarded_port, guest: 8080, host: 9000
 
-  config.vm.provider :virtualbox do |vb|
-    vb.customize ["modifyvm", :id, "--memory", "256", "--cpus",   "1"]
+  # Customize virtual machine
+  config.vm.provider :virtualbox do |vm|
+    # Use VBoxManage to customize the VM. For example to change memory:
+    vm.customize ["modifyvm", :id, "--memory", MEMORY.to_i]
+    vm.customize ["modifyvm", :id, "--cpus", CORES.to_i]
+
+    if CORES.to_i > 1
+      vm.customize ["modifyvm", :id, "--ioapic", "on"]
+    end
   end
 
+  # Download cookbooks
+  config.vm.provision :shell, :inline => "cd /home/vagrant && wget -O - https://github.com/ilyar/chef-bem/archive/v0.1.0.tar.gz | tar xzf -"
+
+  # Apply cookbooks
   config.vm.provision :chef_solo do |chef|
     chef.log_level = :debug
-    chef.recipe_url = "https://github.com/ilyar/chef-bem/archive/master.tar.gz"
-    chef.cookbooks_path = [:vm, ".", "chef-bem-master"]
+    chef.cookbooks_path = [:vm, "/home/vagrant/chef-bem-0.1.0"]
     chef.add_recipe "git"
     chef.add_recipe "nodejs"
     chef.json = {
@@ -40,5 +66,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       }
     }
   end
+
+  # Setup environment
   config.vm.provision :shell, :inline => $script
 end
